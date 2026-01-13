@@ -3,9 +3,9 @@ set -e
 
 clear
 
-# ========= CUSTOM BANNER =========
-echo -e "\n"
+# ========= BANNER =========
 cat << "EOF"
+
   .oooo.               oooooooooo.                      oooo         .oooooo..o            o8o        .o8  oooooooooo.              oooo  oooo  
  d8P'`Y8b              `888'   `Y8b                     `888        d8P'    `Y8            `"'       "888  `888'   `Y8b             `888  `888  
 888    888 oooo    ooo  888      888  .oooo.   oooo d8b  888  oooo  Y88bo.       .ooooo.  oooo   .oooo888   888     888 oooo  oooo   888   888  
@@ -13,40 +13,43 @@ cat << "EOF"
 888    888    Y888'     888      888  .oP"888   888      888888.         `"Y88b 888ooo888  888  888   888   888    `88b  888   888   888   888  
 `88b  d88'  .o8"'88b    888     d88' d8(  888   888      888 `88b.  oo     .d8P 888    .o  888  888   888   888    .88P  888   888   888   888  
  `Y8bd8P'  o88'   888o o888bood8P'   `Y888""8o d888b    o888o o888o 8""88888P'  `Y8bod8P' o888o `Y8bod88P" o888bood8P'   `V88V"V8P' o888o o888o 
+                                                                                                                                                
+                                                                                                                                                
+                                                                                                                                                
+
+🔥 0xDarkSeidBull Validator Toolkit 🔥
+------------------------------------------------
 EOF
 
-echo -e "\n🔥 0xDarkSeidBull Validator Toolkit 🔥"
-echo "------------------------------------------------"
+echo ""
+echo "Choose installation mode:"
+echo ""
+echo "1) 🚀 Run Automatically (Recommended)"
+echo "2) 🛠️  Run Manually (Drop to root shell)"
 echo ""
 
-# ========= DEFAULT MODE =========
-MODE="auto"
-
-# ========= INTERACTIVE CHECK =========
-if [ -t 0 ]; then
-  echo "Choose installation mode:"
-  echo ""
-  echo "1) 🚀 Run Automatically (Recommended)"
-  echo "2) 🛠️  Run Manually (Drop to root shell)"
-  echo ""
-
-  read -rp "Enter your choice [1/2] (default: 1): " choice
-
+# ========= FORCE REAL USER INPUT =========
+while true; do
+  read -rp "Enter your choice [1/2]: " choice < /dev/tty
   case "$choice" in
+    1)
+      MODE="auto"
+      break
+      ;;
     2)
       MODE="manual"
+      break
       ;;
     *)
-      MODE="auto"
+      echo "❌ Invalid choice. Please enter 1 or 2."
       ;;
   esac
-fi
+done
 
 # ========= MODE HANDLING =========
 if [ "$MODE" = "manual" ]; then
   echo -e "\n🛠️ Manual mode selected."
   echo "You are now in root shell."
-  echo ""
   exec bash
 fi
 
@@ -56,9 +59,8 @@ sleep 1
 # ========= AUTO INSTALL =========
 apt update -y && apt upgrade -y
 
-apt install -y \
-  curl wget git build-essential pkg-config \
-  libssl-dev jq unzip ca-certificates
+apt install -y curl wget git build-essential \
+  pkg-config libssl-dev jq unzip ca-certificates
 
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | bash
