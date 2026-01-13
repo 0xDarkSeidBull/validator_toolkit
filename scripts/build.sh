@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
-echo "📂 Cloning validator code"
-rm -rf /opt/validator
-git clone https://github.com/0xDarkSeidBull/validator_toolkit.git /opt/validator
+echo "📂 Cloning Tempo repo"
 
-echo "⚙️ Building …"
+rm -rf /opt/tempo
+git clone https://github.com/0xDarkSeidBull/tempo.git /opt/tempo
+
+cd /opt/tempo
+
+echo "⚙️ Building Tempo binary"
 source /root/.cargo/env
-cd /opt/validator
-cargo build --release
+cargo build --release --bin tempo
