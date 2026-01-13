@@ -3,71 +3,73 @@ set -e
 
 clear
 
-# ========= BANNER =========
+# ========= CUSTOM BANNER =========
 echo -e "\n"
-echo -e "██████╗ ██╗  ██╗██████╗  █████╗ ██████╗ ██╗  ██╗"
-echo -e "██╔═██╗╚██╗██╔╝██╔══██╗██╔══██╗██╔══██╗██║  ██║"
-echo -e "██████╔╝ ╚███╔╝ ██║  ██║███████║██████╔╝███████║"
-echo -e "██╔═══╝  ██╔██╗ ██║  ██║██╔══██║██╔══██╗██╔══██║"
-echo -e "██║     ██╔╝ ██╗██████╔╝██║  ██║██║  ██║██║  ██║"
-echo -e "╚═╝     ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝"
-echo -e "\n"
-echo -e "        🔥 0xDarkSeidBull Validator Toolkit 🔥"
-echo -e "------------------------------------------------\n"
+cat << "EOF"
+  .oooo.               oooooooooo.                      oooo         .oooooo..o            o8o        .o8  oooooooooo.              oooo  oooo  
+ d8P'`Y8b              `888'   `Y8b                     `888        d8P'    `Y8            `"'       "888  `888'   `Y8b             `888  `888  
+888    888 oooo    ooo  888      888  .oooo.   oooo d8b  888  oooo  Y88bo.       .ooooo.  oooo   .oooo888   888     888 oooo  oooo   888   888  
+888    888  `88b..8P'   888      888 `P  )88b  `888""8P  888 .8P'    `"Y8888o.  d88' `88b `888  d88' `888   888oooo888' `888  `888   888   888  
+888    888    Y888'     888      888  .oP"888   888      888888.         `"Y88b 888ooo888  888  888   888   888    `88b  888   888   888   888  
+`88b  d88'  .o8"'88b    888     d88' d8(  888   888      888 `88b.  oo     .d8P 888    .o  888  888   888   888    .88P  888   888   888   888  
+ `Y8bd8P'  o88'   888o o888bood8P'   `Y888""8o d888b    o888o o888o 8""88888P'  `Y8bod8P' o888o `Y8bod88P" o888bood8P'   `V88V"V8P' o888o o888o 
+EOF
 
-# ========= OPTIONS =========
-echo "Choose installation mode:"
-echo ""
-echo "1) 🚀 Run Automatically (Recommended)"
-echo "2) 🛠️  Run Manually (Drop to root shell)"
+echo -e "\n🔥 0xDarkSeidBull Validator Toolkit 🔥"
+echo "------------------------------------------------"
 echo ""
 
-read -rp "Enter your choice [1/2]: " choice
+# ========= DEFAULT MODE =========
+MODE="auto"
 
-case "$choice" in
-  1)
-    echo -e "\n🚀 Starting Automatic Installation...\n"
-    sleep 1
-    ;;
-  2)
-    echo -e "\n🛠️ Manual mode selected."
-    echo "You are now in root shell. Run commands manually."
-    echo ""
-    exec bash
-    ;;
-  *)
-    echo "❌ Invalid choice. Exiting."
-    exit 1
-    ;;
-esac
+# ========= INTERACTIVE CHECK =========
+if [ -t 0 ]; then
+  echo "Choose installation mode:"
+  echo ""
+  echo "1) 🚀 Run Automatically (Recommended)"
+  echo "2) 🛠️  Run Manually (Drop to root shell)"
+  echo ""
 
-# ========= AUTO INSTALL START =========
-echo "🔧 Updating system..."
+  read -rp "Enter your choice [1/2] (default: 1): " choice
+
+  case "$choice" in
+    2)
+      MODE="manual"
+      ;;
+    *)
+      MODE="auto"
+      ;;
+  esac
+fi
+
+# ========= MODE HANDLING =========
+if [ "$MODE" = "manual" ]; then
+  echo -e "\n🛠️ Manual mode selected."
+  echo "You are now in root shell."
+  echo ""
+  exec bash
+fi
+
+echo -e "\n🚀 Automatic installation starting...\n"
+sleep 1
+
+# ========= AUTO INSTALL =========
 apt update -y && apt upgrade -y
 
-echo "📦 Installing dependencies..."
-apt install -y curl wget git build-essential pkg-config libssl-dev jq unzip
+apt install -y \
+  curl wget git build-essential pkg-config \
+  libssl-dev jq unzip ca-certificates
 
-echo "🐳 Installing Docker..."
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | bash
   systemctl enable docker
   systemctl start docker
 fi
 
-echo "🦀 Installing Rust..."
 if ! command -v cargo >/dev/null 2>&1; then
   curl https://sh.rustup.rs -sSf | sh -s -- -y
-  source $HOME/.cargo/env
+  source "$HOME/.cargo/env"
 fi
 
-echo "📥 Cloning repository..."
-cd $HOME
-git clone https://github.com/0xDarkSeidBull/validator_toolkit.git
-cd validator_toolkit
-
-echo "⚙️ Building project..."
-cargo build --release
-
-echo -e "\n✅ Installation Completed Successfully!"
+echo -e "\n✅ Installation completed successfully!"
 echo "👑 Built by 0xDarkSeidBull"
