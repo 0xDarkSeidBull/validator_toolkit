@@ -9,7 +9,5 @@ mkdir -p /root/tempo-node
 /opt/tempo/target/release/tempo consensus calculate-public-key \
   --private-key /root/tempo-node/validator-key
 
-echo "🔐 Validator Private Key:"
 cat /root/tempo-node/validator-key
-
 chmod 600 /root/tempo-node/validator-key
