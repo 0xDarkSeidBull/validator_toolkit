@@ -13,9 +13,6 @@ cat << "EOF"
 888    888    Y888'     888      888  .oP"888   888      888888.         `"Y88b 888ooo888  888  888   888   888    `88b  888   888   888   888  
 `88b  d88'  .o8"'88b    888     d88' d8(  888   888      888 `88b.  oo     .d8P 888    .o  888  888   888   888    .88P  888   888   888   888  
  `Y8bd8P'  o88'   888o o888bood8P'   `Y888""8o d888b    o888o o888o 8""88888P'  `Y8bod8P' o888o `Y8bod88P" o888bood8P'   `V88V"V8P' o888o o888o 
-                                                                                                                                                
-                                                                                                                                                
-                                                                                                                                                
 
 🔥 0xDarkSeidBull Validator Toolkit 🔥
 ------------------------------------------------
@@ -59,18 +56,31 @@ sleep 1
 # ========= AUTO INSTALL =========
 apt update -y && apt upgrade -y
 
-apt install -y curl wget git build-essential \
-  pkg-config libssl-dev jq unzip ca-certificates
+# --- Core + Rust native deps (FIXED) ---
+apt install -y \
+  curl wget git build-essential pkg-config \
+  libssl-dev jq unzip ca-certificates \
+  clang llvm libclang-dev
 
+# --- Docker ---
 if ! command -v docker >/dev/null 2>&1; then
+  echo "🐳 Installing Docker..."
   curl -fsSL https://get.docker.com | bash
   systemctl enable docker
   systemctl start docker
 fi
 
+# --- Rust ---
 if ! command -v cargo >/dev/null 2>&1; then
+  echo "🦀 Installing Rust..."
   curl https://sh.rustup.rs -sSf | sh -s -- -y
   source "$HOME/.cargo/env"
+fi
+
+# --- libclang ENV (critical for reth / mdbx / bindgen) ---
+if [ -z "$LIBCLANG_PATH" ]; then
+  export LIBCLANG_PATH=$(dirname $(find /usr/lib -name "libclang.so*" | head -n 1))
+  echo "🔧 LIBCLANG_PATH set to $LIBCLANG_PATH"
 fi
 
 echo -e "\n✅ Installation completed successfully!"
