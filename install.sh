@@ -5,7 +5,6 @@ clear
 
 # ========= BANNER =========
 cat << "EOF"
-
   .oooo.               oooooooooo.                      oooo         .oooooo..o            o8o        .o8  oooooooooo.              oooo  oooo  
  d8P'`Y8b              `888'   `Y8b                     `888        d8P'    `Y8            `"'       "888  `888'   `Y8b             `888  `888  
 888    888 oooo    ooo  888      888  .oooo.   oooo d8b  888  oooo  Y88bo.       .ooooo.  oooo   .oooo888   888     888 oooo  oooo   888   888  
@@ -15,6 +14,7 @@ cat << "EOF"
  `Y8bd8P'  o88'   888o o888bood8P'   `Y888""8o d888b    o888o o888o 8""88888P'  `Y8bod8P' o888o `Y8bod88P" o888bood8P'   `V88V"V8P' o888o o888o 
 
 🔥 0xDarkSeidBull Validator Toolkit 🔥
+Tempo Validator – One Line Installer
 ------------------------------------------------
 EOF
 
@@ -29,59 +29,104 @@ echo ""
 while true; do
   read -rp "Enter your choice [1/2]: " choice < /dev/tty
   case "$choice" in
-    1)
-      MODE="auto"
-      break
-      ;;
-    2)
-      MODE="manual"
-      break
-      ;;
-    *)
-      echo "❌ Invalid choice. Please enter 1 or 2."
-      ;;
+    1) MODE="auto"; break ;;
+    2) MODE="manual"; break ;;
+    *) echo "❌ Invalid choice. Please enter 1 or 2." ;;
   esac
 done
 
 # ========= MODE HANDLING =========
 if [ "$MODE" = "manual" ]; then
   echo -e "\n🛠️ Manual mode selected."
-  echo "You are now in root shell."
   exec bash
 fi
 
 echo -e "\n🚀 Automatic installation starting...\n"
 sleep 1
 
-# ========= AUTO INSTALL =========
+# ===============================
+# SYSTEM UPDATE + DEPENDENCIES
+# ===============================
 apt update -y && apt upgrade -y
 
-# --- Core + Rust native deps (FIXED) ---
 apt install -y \
-  curl wget git build-essential pkg-config \
-  libssl-dev jq unzip ca-certificates \
-  clang llvm libclang-dev
+  curl git build-essential pkg-config libssl-dev \
+  clang lz4 jq htop ca-certificates gnupg
 
-# --- Docker ---
-if ! command -v docker >/dev/null 2>&1; then
-  echo "🐳 Installing Docker..."
-  curl -fsSL https://get.docker.com | bash
-  systemctl enable docker
-  systemctl start docker
-fi
-
-# --- Rust ---
+# ===============================
+# RUST INSTALL (FIXED)
+# ===============================
 if ! command -v cargo >/dev/null 2>&1; then
   echo "🦀 Installing Rust..."
-  curl https://sh.rustup.rs -sSf | sh -s -- -y
-  source "$HOME/.cargo/env"
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 fi
 
-# --- libclang ENV (critical for reth / mdbx / bindgen) ---
-if [ -z "$LIBCLANG_PATH" ]; then
-  export LIBCLANG_PATH=$(dirname $(find /usr/lib -name "libclang.so*" | head -n 1))
-  echo "🔧 LIBCLANG_PATH set to $LIBCLANG_PATH"
+# force load cargo in non-interactive shell
+. "$HOME/.cargo/env"
+export PATH="$HOME/.cargo/bin:$PATH"
+
+# persist for future shells
+if ! grep -q '.cargo/bin' /root/.bashrc 2>/dev/null; then
+  echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> /root/.bashrc
 fi
 
-echo -e "\n✅ Installation completed successfully!"
+rustc --version
+cargo --version
+
+# ===============================
+# DOCKER INSTALL (OFFICIAL)
+# ===============================
+if ! command -v docker >/dev/null 2>&1; then
+  echo "🐳 Installing Docker..."
+
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+    | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  chmod a+r /etc/apt/keyrings/docker.gpg
+
+  echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  > /etc/apt/sources.list.d/docker.list
+
+  apt update -y
+  apt install -y docker-ce docker-ce-cli containerd.io \
+    docker-buildx-plugin docker-compose-plugin
+fi
+
+usermod -aG docker ${SUDO_USER:-root}
+systemctl enable docker
+systemctl start docker
+
+docker --version
+docker run hello-world || true
+
+# ===============================
+# TEMPO BUILD
+# ===============================
+if [ ! -d "$HOME/tempo" ]; then
+  git clone https://github.com/tempoxyz/tempo.git "$HOME/tempo"
+fi
+
+cd "$HOME/tempo"
+
+cargo build --release --bin tempo
+
+# ===============================
+# VALIDATOR KEY GENERATION
+# ===============================
+mkdir -p "$HOME/tempo-node"
+
+./target/release/tempo consensus generate-private-key \
+  --output "$HOME/tempo-node/validator-key"
+
+./target/release/tempo consensus calculate-public-key \
+  --private-key "$HOME/tempo-node/validator-key"
+
+echo ""
+echo "🔐 Validator Private Key:"
+cat "$HOME/tempo-node/validator-key"
+
+echo -e "\n✅ All steps completed successfully!"
 echo "👑 Built by 0xDarkSeidBull"
